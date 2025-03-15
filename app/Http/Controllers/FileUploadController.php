@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use App\Http\ApiResponse;
+use \Illuminate\Validation\ValidationException;
+
 class FileUploadController extends Controller
 {
     public function index(Request $request)
@@ -83,7 +85,7 @@ class FileUploadController extends Controller
             $file->update(['name' => $request->name]);
 
             return response()->json($response->callResponse(200, $file, "File updated successfully"), 200);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return response()->json($response->callResponse(400, [], "Validation error"), 400);
         } catch (\Exception $e) {
             Log::error("Error updating file: " . $e->getMessage());
