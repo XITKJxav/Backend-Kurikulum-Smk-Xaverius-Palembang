@@ -66,29 +66,10 @@ class FileUploadController extends Controller
             }
 
             return response()->json($response->callResponse(200, $file, "File"), 200);
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return response()->json($response->callResponse(404, [], "File not found"), 404);
         } catch (\Exception $e) {
             Log::error("Error retrieving file: " . $e->getMessage());
-            return response()->json($response->callResponse(500, [], "Internal Server Error"), 500);
-        }
-    }
-
-    public function update(Request $request, FileUpload $file)
-    {
-        $response = new ApiResponse();
-        try {
-            $request->validate([
-                'name' => 'required|string|max:255'
-            ]);
-
-            $file->update(['name' => $request->name]);
-
-            return response()->json($response->callResponse(200, $file, "File updated successfully"), 200);
-        } catch (ValidationException $e) {
-            return response()->json($response->callResponse(400, [], "Validation error"), 400);
-        } catch (\Exception $e) {
-            Log::error("Error updating file: " . $e->getMessage());
             return response()->json($response->callResponse(500, [], "Internal Server Error"), 500);
         }
     }
