@@ -5,139 +5,108 @@ namespace App\Http\Controllers;
 use App\Http\Requests\FileUploadRequest;
 use App\Models\FileUpload;
 use Illuminate\Http\Request;
-use App\Http\Controllers\findOrFail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
-
+use App\Http\ApiResponse;
 class FileUploadController extends Controller
 {
-   
-     
-    public function index()
+    public function index(Request $request)
     {
-        try{
-        $data = FileUpload::all();
+        $response = new ApiResponse();
+        try {
+            $order = ($request->desc == null || $request->desc != "true") ? "asc" : "desc";
+            $data = FileUpload::orderBy('name', $order)->simplePaginate( $perPage = 2, $columns = ['*'], $pageName = "file"); 
+            
+            $status_code = $data->isEmpty() ? 204 : 200;
 
-        return response()->json([
-            'status' => true,
-            'status_code' => 200,
-            'message' => 'Success get all images',
-            'data' => $data
-        ]);
-        } catch(\Exception $e) {
-            return response()->json([
-                'status' => true,
-                'status_code' => 200,
-                'message' => 'Internal Server Error'
-            ]);
+            return response()->json($response->callResponse($status_code, $data, "File"), $status_code);
+        } catch (\Exception $e) {
+            Log::error("Error fetching files: " . $e->getMessage());
+            return response()->json($response->callResponse(500, [], "File"), 500);
         }
     }
+
     public function store(FileUploadRequest $request)
     {
+        $response = new ApiResponse();
         try {
-            $file = $request->file('file');
-    
-            if (!$file) {
-                return response()->json([
-                    'status' => false,
-                    'status_code' => 400,
-                    'message' => 'No file uploaded'
-                ], 400);
+            if (!$request->hasFile('file')) {
+                return response()->json($response->callResponse(400, [], "File not provided"), 400);
             }
-    
+
+            $file = $request->file('file');
             $filename = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
             $extension = $file->getClientOriginalExtension();
             $uniqueName = uniqid() . '-' . $filename . '.' . $extension;
-    
             $path = $file->storeAs('uploads', $uniqueName, 'public');
-    
+
             $uploadedFile = FileUpload::create([
                 'url_id' => $uniqueName,
                 'name' => $filename,
             ]);
-    
-            return response()->json([
-                'status' => true,
-                'status_code' => 200,
-                'message' => 'Success upload file',
-                'data' => $uploadedFile
-            ]);
+
+            return response()->json($response->callResponse(201, $uploadedFile, "File uploaded successfully"), 201);
         } catch (\Exception $e) {
-            Log::error($e->getMessage()); 
-            return response()->json([
-                'status' => false,
-                'status_code' => 500,
-                'message' => 'Internal Server Error',
-                'error' => $e->getMessage(),
-            ], 500);
+            Log::error("Error uploading file: " . $e->getMessage());
+            return response()->json($response->callResponse(500, [], "Internal Server Error"), 500);
         }
     }
-    
+
     public function show($id)
     {
-    try {
-        $file = FileUpload::findOrFail($id);
+        $response = new ApiResponse();
+        try {
+            $file = FileUpload::findOrFail($id);
+            $filePath = 'uploads/' . $file->url_id;
 
-        $fileUrl = Storage::url('uploads/' . $file->url_id);
+            if (!Storage::disk('public')->exists($filePath)) {
+                return response()->json($response->callResponse(404, [], "File not found"), 404);
+            }
 
-        if (!Storage::disk('public')->exists('uploads/' . $file->url_id)) {
-            return response()->json([
-                'status' => false,
-                'status_code' => 404,
-                'message' => 'File not found',
-            ], 404);
+            return response()->json($response->callResponse(200, $file, "File"), 200);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json($response->callResponse(404, [], "File not found"), 404);
+        } catch (\Exception $e) {
+            Log::error("Error retrieving file: " . $e->getMessage());
+            return response()->json($response->callResponse(500, [], "Internal Server Error"), 500);
         }
-
-        return response()->json([
-            'status' => true,
-            'status_code' => 200,
-            'message' => 'Success get file',
-            'data' => [
-                'file' => $file,
-                'file_url' => $fileUrl, // Returning the URL of the file
-            ]
-        ]);
-    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-        // Handle case where file is not found
-        return response()->json([
-            'status' => false,
-            'status_code' => 404,
-            'message' => 'File not found',
-        ], 404);
     }
-}
-
-
 
     public function update(Request $request, FileUpload $file)
     {
-        $request->validate([
-            'name' => 'required|string|max:255'
-        ]);
+        $response = new ApiResponse();
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255'
+            ]);
 
-        $file->update(['name' => $request->name]);
+            $file->update(['name' => $request->name]);
 
-        return response()->json([
-            'status' => true,
-            'status_code' => 200,
-            'message' => 'File updated successfully',
-            'data' => $file
-        ]);
+            return response()->json($response->callResponse(200, $file, "File updated successfully"), 200);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json($response->callResponse(400, [], "Validation error"), 400);
+        } catch (\Exception $e) {
+            Log::error("Error updating file: " . $e->getMessage());
+            return response()->json($response->callResponse(500, [], "Internal Server Error"), 500);
+        }
     }
 
-  
     public function destroy(FileUpload $file)
     {
-        if (Storage::disk('public')->exists('uploads/' . $file->url_id)) {
-            Storage::disk('public')->delete('uploads/' . $file->url_id);
+        $response = new ApiResponse();
+        try {
+            $filePath = 'uploads/' . $file->url_id;
+
+            if (Storage::disk('public')->exists($filePath)) {
+                Storage::disk('public')->delete($filePath);
+            }
+
+            $file->delete();
+
+            return response()->json($response->callResponse(200, [], "File deleted successfully"), 200);
+        } catch (\Exception $e) {
+            Log::error("Error deleting file: " . $e->getMessage());
+            return response()->json($response->callResponse(500, [], "Internal Server Error"), 500);
         }
-
-        $file->delete();
-
-        return response()->json([
-            'status' => true,
-            'status_code' => 200,
-            'message' => 'File deleted successfully'
-        ]);
     }
 }

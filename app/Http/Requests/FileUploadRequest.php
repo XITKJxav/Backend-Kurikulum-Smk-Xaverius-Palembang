@@ -17,4 +17,5 @@ class FileUploadRequest extends FormRequest
             'file' => 'required|file|mimes:jpg,jpeg,png,gif|max:2048',
         ];
     }
+    
 }
