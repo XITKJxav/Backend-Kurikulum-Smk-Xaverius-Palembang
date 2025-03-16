@@ -30,18 +30,18 @@ class ApiResponse {
         }
     }
 
-    public function response200($data, $name): array {
+    public function response200($data, $message): array {
         return[
             "status_code" => 200,
-            "message" => "Success getting " . $name,
+            "message" => $message,
             "data" => [$data]
         ];
     }
 
-    public function response201($data, $name): array {
+    public function response201($data, $message): array {
         return [
             "status_code" => 201,
-            "message" => "Success created " . $name,
+            "message" => $message,
             "data" => [$data]
         ];
     }
