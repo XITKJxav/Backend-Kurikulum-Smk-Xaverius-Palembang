@@ -15,9 +15,13 @@ class JurusanController extends Controller
         $response = new ApiResponse();
         try {
             $order = $request->desc == null || $request->desc != 'true' ? 'asc' : 'desc';
-            $data = Jurusan::orderBy('nama_jurusan', $order)->simplePaginate(2, ['*'], 'jurusan');
+            $sortBy = $request->sort == 'true' ? 'created_at' : 'updated_at';
+
+            $data = Jurusan::orderBy($sortBy, $order)->orderBy('kd_jurusan', $order)->simplePaginate(2, ['*'], 'jurusan');
 
             return response()->json($response->callResponse(200, $data, 'Jurusan fetched successfully'), 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json($response->callResponse(404, [], 'Jurusan not found'), 404);
         } catch (\Exception $e) {
             Log::error('Error fetching jurusans: ' . $e->getMessage());
             return response()->json($response->callResponse(500, [], 'Failed to fetch jurusan'), 500);
@@ -28,13 +32,21 @@ class JurusanController extends Controller
     {
         $response = new ApiResponse();
         try {
+            
+            $existingJurusan = Jurusan::where('nama_jurusan', $request->nama_jurusan)->first();
+
+            if ($existingJurusan) {
+                return response()->json($response->callResponse(400, [], 'T'), 400);
+            }
+
             $kd_jurusan = $this->generateKdJurusan($request->nama_jurusan);
 
             $jurusan = Jurusan::create([
                 'kd_jurusan' => $kd_jurusan,
                 'nama_jurusan' => $request->nama_jurusan,
+                'status' => true
             ]);
-
+            
             return response()->json($response->callResponse(201, $jurusan, 'Jurusan created successfully'), 201);
         } catch (ModelNotFoundException $e) {
             return response()->json($response->callResponse(404, [], 'Jurusan'), 404);
@@ -49,7 +61,7 @@ class JurusanController extends Controller
         $response = new ApiResponse();
         try {
             $file = Jurusan::findOrFail($id);
-
+            
             return response()->json($response->callResponse(200, $file, 'Jurusan'), 200);
         } catch (ModelNotFoundException $e) {
             return response()->json($response->callResponse(404, [], 'Jurusan'), 404);
@@ -59,7 +71,7 @@ class JurusanController extends Controller
         }
     }
 
-    public function update(JurusanRequest $request, string $id)
+    public function update(Request $request, string $id)
     {
         $response = new ApiResponse();
 
@@ -68,8 +80,7 @@ class JurusanController extends Controller
             $kd_jurusan = $this->generateKdJurusan($request->nama_jurusan);
 
             $jurusan->update([
-                'kd_jurusan' => $kd_jurusan,
-                'nama_jurusan' => $request->nama_jurusan,
+                "status" => $request->status,
             ]);
 
             return response()->json($response->callResponse(200, $jurusan, 'Jurusan updated successfully'), 200);
@@ -88,13 +99,16 @@ class JurusanController extends Controller
         $kd_jurusan = '';
 
         foreach ($words as $word) {
-            $cleanedWord = preg_replace('/[^A-Za-z0-9]/', '', $word);
+            $cleanedWord = preg_replace('/[^A-Za-z0-9]/', '', $word); 
             if (in_array(strtolower($cleanedWord), $excludeWords)) {
                 continue;
             }
 
             $kd_jurusan .= strtoupper(substr($cleanedWord, 0, 1));
         }
+
+        $kd_jurusan .= "-".date('YmdHis'); 
+        
 
         return $kd_jurusan;
     }
