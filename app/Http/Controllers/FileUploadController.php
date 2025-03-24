@@ -20,6 +20,8 @@ class FileUploadController extends Controller
             $data = FileUpload::orderBy('name', $order)->simplePaginate($perPage = 2, $columns = ['*'], $pageName = 'file');
 
             return response()->json($response->callResponse(200, $data, 'Jurusan fetched successfully'), 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json($response->callResponse(404, [], 'File not found'), 404);
         } catch (\Exception $e) {
             Log::error('Error fetching files: ' . $e->getMessage());
             return response()->json($response->callResponse(500, [], 'File'), 500);
@@ -56,6 +58,8 @@ class FileUploadController extends Controller
             ]);
 
             return response()->json($response->callResponse(201, $uploadedFile, 'File uploaded successfully'), 201);
+        } catch (ModelNotFoundException $e) {
+            return response()->json($response->callResponse(404, [], 'File not found'), 404);
         } catch (\Exception $e) {
             Log::error('Error uploading file: ' . $e->getMessage());
             return response()->json($response->callResponse(500, [], 'Internal Server Error'), 500);
@@ -107,6 +111,8 @@ class FileUploadController extends Controller
             $file->delete();
 
             return response()->json($response->callResponse(200, [], 'File deleted successfully'), 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json($response->callResponse(404, [], 'File not found'), 404);
         } catch (\Exception $e) {
             Log::error('Error deleting file: ' . $e->getMessage());
             return response()->json($response->callResponse(500, [], 'Internal Server Error'), 500);
