@@ -19,7 +19,7 @@ class JurusanController extends Controller
 
             $data = Jurusan::orderBy($sortBy, $order)->orderBy('kd_jurusan', $order)->simplePaginate(2, ['*'], 'jurusan');
 
-            return response()->json($response->callResponse(200, $data, 'Jurusan fetched successfully'.$order), 200);
+            return response()->json($response->callResponse(200, $data, 'Jurusan fetched successfully'), 200);
         } catch (ModelNotFoundException $e) {
             return response()->json($response->callResponse(404, [], 'Jurusan not found'), 404);
         } catch (\Exception $e) {
