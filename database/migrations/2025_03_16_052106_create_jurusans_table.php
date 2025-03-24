@@ -10,10 +10,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        if (!Schema::hasTable('jurusans')) { // Ensure you're creating the correct table
+        if (!Schema::hasTable('jurusans')) { 
             Schema::create('jurusans', function (Blueprint $table) {
                 $table->string('kd_jurusan')->primary();
                 $table->string('nama_jurusan');
+                $table->boolean('status');
                 $table->timestamps();
             });
         }
