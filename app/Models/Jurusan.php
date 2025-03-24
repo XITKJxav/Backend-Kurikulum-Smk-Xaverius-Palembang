@@ -15,6 +15,7 @@ class Jurusan extends Model
     
     protected $fillable = [
         'kd_jurusan', 
-        'nama_jurusan',   
+        'nama_jurusan',
+        'status'  
     ];
 }
