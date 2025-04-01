@@ -23,6 +23,7 @@ class ApiResponse {
                 return $this->response500();
             default:
                 return [
+                    "status" => false,
                     "status_code" => $status_code,
                     "message" => "Unknown response status",
                     "data" => []
@@ -32,6 +33,7 @@ class ApiResponse {
 
     public function response200($data, $message): array {
         return[
+              "status" => true,
             "status_code" => 200,
             "message" => $message,
             "data" =>  $data
@@ -40,6 +42,7 @@ class ApiResponse {
 
     public function response201($data, $message): array {
         return [
+            "status" => true,
             "status_code" => 201,
             "message" => $message,
             "data" => $data
@@ -48,6 +51,7 @@ class ApiResponse {
 
     public function response204(): array {
         return [
+              "status" => true,
             "status_code" => 204,
             "message" => "No Content",
             "data" => []
@@ -56,14 +60,16 @@ class ApiResponse {
 
     public function response400($name): array {
         return [
+            "status" => false,
             "status_code" => 400,
-            "message" => "Bad Request: " . $name . " not found",
+            "message" => "Bad Request: " . $name,
             "data" => []
         ];
     }
 
     public function response401(): array {
         return [
+            "status" => false,
             "status_code" => 401,
             "message" => "Unauthorized",
             "data" => []
@@ -72,6 +78,7 @@ class ApiResponse {
 
     public function response404($name): array {
         return [
+            "status" => false,
             "status_code" => 404,
             "message" => "Not Found: " . $name,
             "data" => []
@@ -80,6 +87,7 @@ class ApiResponse {
 
     public function response500(): array {
         return [
+            "status" => false,
             "status_code" => 500,
             "message" => "Internal Server Error",
             "data" => []
