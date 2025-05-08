@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use App\Http\ApiResponse;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class FileUploadController extends Controller
 {
@@ -22,9 +22,6 @@ class FileUploadController extends Controller
             return response()->json($response->callResponse(200, $data, 'Jurusan fetched successfully'), 200);
         } catch (ModelNotFoundException $e) {
             return response()->json($response->callResponse(404, [], 'File not found'), 404);
-        } catch (\Exception $e) {
-            Log::error('Error fetching files: ' . $e->getMessage());
-            return response()->json($response->callResponse(500, [], 'File'), 500);
         }
     }
 
@@ -85,7 +82,7 @@ class FileUploadController extends Controller
             return response()->json($response->callResponse(500, [], 'Internal Server Error'), 500);
         }
     }
-    
+
     public function destroy(string $id)
     {
         $response = new ApiResponse();
