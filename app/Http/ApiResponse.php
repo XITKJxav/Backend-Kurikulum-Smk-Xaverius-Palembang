@@ -1,11 +1,12 @@
 <?php
+
 namespace App\Http;
 
-use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
+class ApiResponse
+{
 
-class ApiResponse {
-    public function callResponse($status_code, $data = [], $message = ""): array {
+    public function callResponse($status_code, $data = [], $message = ""): array
+    {
         switch ($status_code) {
             case 200:
                 return $this->response200($data, $message);
@@ -19,6 +20,8 @@ class ApiResponse {
                 return $this->response401();
             case 404:
                 return $this->response404($message);
+            case 422:
+                return $this->response422($data, $message);
             case 500:
                 return $this->response500();
             default:
@@ -31,16 +34,20 @@ class ApiResponse {
         }
     }
 
-    public function response200($data, $message): array {
-        return[
-              "status" => true,
+
+
+    public function response200($data, $message): array
+    {
+        return [
+            "status" => true,
             "status_code" => 200,
             "message" => $message,
             "data" =>  $data
         ];
     }
 
-    public function response201($data, $message): array {
+    public function response201($data, $message): array
+    {
         return [
             "status" => true,
             "status_code" => 201,
@@ -49,16 +56,18 @@ class ApiResponse {
         ];
     }
 
-    public function response204(): array {
+    public function response204(): array
+    {
         return [
-              "status" => true,
+            "status" => true,
             "status_code" => 204,
             "message" => "No Content",
             "data" => []
         ];
     }
 
-    public function response400($name): array {
+    public function response400($name): array
+    {
         return [
             "status" => false,
             "status_code" => 400,
@@ -67,7 +76,8 @@ class ApiResponse {
         ];
     }
 
-    public function response401(): array {
+    public function response401(): array
+    {
         return [
             "status" => false,
             "status_code" => 401,
@@ -76,7 +86,8 @@ class ApiResponse {
         ];
     }
 
-    public function response404($name): array {
+    public function response404($name): array
+    {
         return [
             "status" => false,
             "status_code" => 404,
@@ -84,8 +95,19 @@ class ApiResponse {
             "data" => []
         ];
     }
+    public function response422($data, $message): array
+    {
+        return [
+            "status" => false,
+            "status_code" => 422,
+            "message" => $message,
+            "data" => $data
+        ];
+    }
 
-    public function response500(): array {
+
+    public function response500(): array
+    {
         return [
             "status" => false,
             "status_code" => 500,
