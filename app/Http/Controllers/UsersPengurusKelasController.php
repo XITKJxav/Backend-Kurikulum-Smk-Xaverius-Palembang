@@ -91,19 +91,20 @@ class UsersPengurusKelasController extends Controller
                     'email' => $user->email,
                     'no_telp' => $user->no_telp,
                 ]
-            ], 201);
+            ], 200);
         } catch (ValidationException $e) {
             return response()->json([
                 'status' => false,
+                'status_code' => 422,
                 'message' =>  $e->getMessage(),
                 'data' => []
             ], 422);
         } catch (\Exception $e) {
-
             Log::error('Register error: ' . $e->getMessage());
 
             return response()->json([
                 'status' => false,
+                'status_code' => 500,
                 'message' => 'Failed to register user',
                 'data' => []
             ], 500);
@@ -165,6 +166,7 @@ class UsersPengurusKelasController extends Controller
             Log::error('Login error: ' . $e->getMessage());
             return response()->json([
                 'status' => false,
+                'status_code' => 500,
                 'message' => 'Failed to Login',
                 'data' => []
             ], 500);
@@ -201,6 +203,7 @@ class UsersPengurusKelasController extends Controller
 
             return response()->json([
                 'status' => true,
+                'status_code' => 200,
                 'message' => 'Logout successful',
             ], 200);
         } catch (\Exception $e) {
@@ -208,6 +211,7 @@ class UsersPengurusKelasController extends Controller
 
             return response()->json([
                 'status' => false,
+                'status_code' => 500,
                 'message' => 'Failed to logout',
             ], 500);
         }
@@ -232,6 +236,7 @@ class UsersPengurusKelasController extends Controller
 
             return response()->json([
                 'status' => true,
+                'status_code' => 200,
                 'message' => 'Kode reset telah dikirim ke email.'
             ]);
         } catch (\Exception $e) {
@@ -239,6 +244,7 @@ class UsersPengurusKelasController extends Controller
 
             return response()->json([
                 'status' => false,
+                'status_code' => 500,
                 'message' => 'Failed to send code otp',
             ], 500);
         }
@@ -261,6 +267,7 @@ class UsersPengurusKelasController extends Controller
             if (!$user) {
                 return response()->json([
                     'status' => false,
+                    'status_code' => 400,
                     'message' => 'Kode tidak valid atau sudah kadaluarsa.'
                 ], 400);
             }
@@ -273,19 +280,20 @@ class UsersPengurusKelasController extends Controller
 
             return response()->json([
                 'status' => true,
+                'status_code' => 200,
                 'message' => 'Password berhasil direset.'
-            ]);
+            ], 200);
         } catch (ValidationException $e) {
             return response()->json([
                 'status' => false,
+                'status_code' => 422,
                 'message' => 'Validasi gagal.',
-                'data' => [],
             ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
+                'status_code' => 500,
                 'message' => 'Terjadi kesalahan pada server.',
-                'data' => []
             ], 500);
         }
     }
