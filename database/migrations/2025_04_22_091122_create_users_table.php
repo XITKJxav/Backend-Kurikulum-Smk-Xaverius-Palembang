@@ -11,12 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
+
         Schema::create('users', function (Blueprint $table) {
-            $table->id();
+            $table->string("kd_kepengurusan_kelas")->primary();
             $table->string('name');
             $table->string('email')->unique();
+            $table->string('no_telp', 15);
+            $table->boolean('status');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('otp')->nullable();
+            $table->string('otp_expires_at')->nullable();
+            $table->unsignedBigInteger('id_ruang_kelas');
+            $table->foreign('id_ruang_kelas')->references('id')->on('ruangankelas');
             $table->rememberToken();
             $table->timestamps();
         });
@@ -42,6 +49,7 @@ return new class extends Migration
      */
     public function down(): void
     {
+
         Schema::dropIfExists('users');
         Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
