@@ -238,7 +238,7 @@ class UsersPengurusKelasController extends Controller
                 'status' => true,
                 'status_code' => 200,
                 'message' => 'Kode reset telah dikirim ke email.'
-            ]);
+            ], 200);
         } catch (\Exception $e) {
             Log::error('Logout error: ' . $e->getMessage());
 
@@ -320,6 +320,7 @@ class UsersPengurusKelasController extends Controller
 
         return response()->json([
             'status' => true,
+            'status_code' => 200,
             'access_token' => $newAccessToken,
         ], 200);
     }
@@ -364,7 +365,6 @@ class UsersPengurusKelasController extends Controller
                 ], 400);
             }
 
-            // 5. Response sukses
             return response()->json([
                 'status'      => true,
                 'status_code' => 200,
