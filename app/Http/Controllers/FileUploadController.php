@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use App\Http\ApiResponse;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class FileUploadController extends Controller
 {
@@ -85,7 +85,7 @@ class FileUploadController extends Controller
             return response()->json($response->callResponse(500, [], 'Internal Server Error'), 500);
         }
     }
-    
+
     public function destroy(string $id)
     {
         $response = new ApiResponse();
