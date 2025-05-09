@@ -22,6 +22,9 @@ class FileUploadController extends Controller
             return response()->json($response->callResponse(200, $data, 'Jurusan fetched successfully'), 200);
         } catch (ModelNotFoundException $e) {
             return response()->json($response->callResponse(404, [], 'File not found'), 404);
+        } catch (\Exception $e) {
+            Log::error('Error fetching files: ' . $e->getMessage());
+            return response()->json($response->callResponse(500, [], 'File'), 500);
         }
     }
 
