@@ -1,22 +1,19 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Jurusan;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use App\Http\ApiResponse;
-use App\Http\Common\TextFormatter;
+use App\Http\Common\utils\TextFormatter;
+use App\Http\Controllers\Controller;
 use App\Models\Jurusan;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class JurusanController extends Controller
 {
-
     public function index(Request $request): JsonResponse
     {
-        $response = new ApiResponse();
-
         try {
             $query = $request->search;
             $status = $request->status;
@@ -31,20 +28,18 @@ class JurusanController extends Controller
                 ? $jurusanQuery->orderBy('kd_jurusan', $order)->get()
                 : $jurusanQuery->orderBy('kd_jurusan', $order)->paginate(5);
 
-            return response()->json($response->callResponse(200, $data, 'Jurusan fetched successfully'), 200);
+            return (new ApiResponse(200, $data, "Jurusan fetched successfully"))->send();
         } catch (\Exception $e) {
             Log::error('Error fetching jurusan: ' . $e->getMessage());
-            return response()->json($response->callResponse(500, [], 'Failed to fetch jurusan'), 500);
+            return (new ApiResponse(500, [],  'Failed to fetch jurusan'))->send();
         }
     }
 
 
     public function store(Request $request)
     {
-        $response = new ApiResponse();
-        $textFormat = new TextFormatter($request->nama_jurusan);
-
         try {
+            $textFormat = new TextFormatter($request->nama_jurusan);
             $request->validate([
                 'nama_jurusan' => 'required|string|max:255'
             ]);
@@ -52,7 +47,7 @@ class JurusanController extends Controller
             $existingJurusan = Jurusan::where('nama_jurusan', $request->nama_jurusan)->first();
 
             if ($existingJurusan) {
-                return response()->json($response->callResponse(400, [], 'Jurusan already registered'), 400);
+                return (new ApiResponse(400, [], 'Jurusan already registered'))->send();
             }
 
             $kd_jurusan = $this->generateKdJurusan($request->nama_jurusan);
