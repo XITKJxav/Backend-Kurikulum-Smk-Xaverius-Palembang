@@ -7,13 +7,16 @@ use App\Models\User;
 
 class GenerateMuridCode implements InterfaceGenerator
 {
-    private User $user;
-
     public function generate(): string
     {
-        $latest = $this->user::orderBy('kd_murid', 'desc')->first();
-        $lastCode = $latest ? intval(substr($latest->kd_kepengurusan_kelas, -3)) : 0;
-        $newCode = str_pad($lastCode + 1, 3, '0', STR_PAD_LEFT);
-        return 'S-' . $newCode;
+        $latest = User::orderBy('kd_siswa', 'desc')->first();
+
+        if ($latest && preg_match('/S-(\d+)/', $latest->kd_siswa, $matches)) {
+            $nextNumber = (int)$matches[1] + 1;
+        } else {
+            $nextNumber = 1;
+        }
+
+        return 'S-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
     }
 }

@@ -21,7 +21,8 @@ return new class extends Migration
             $table->string('password');
             $table->string('otp')->nullable();
             $table->string('otp_expires_at')->nullable();
-            $table->foreignId('id_role')->constrained('roles');
+            $table->string('id_role');
+            $table->foreign('id_role')->references('id_role')->on('roles');
             $table->rememberToken();
             $table->timestamps();
         });

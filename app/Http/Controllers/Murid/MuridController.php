@@ -1,33 +1,29 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Murid;
 
+use App\Http\Common\Helper\ReportGenerator;
+use App\Http\Controllers\Controller;
+use App\Http\Common\Utils\ApiResponse;
+use App\Http\Common\Utils\Filtering;
 use App\Http\Services\AuthServices;
 use Illuminate\Http\Request;
 use App\Models\User;
-use App\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Validator;
 
-class UsersPengurusKelasController extends Controller
+class MuridController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
         try {
+            $data = (new Filtering($request))
+                ->setBuilder(User::with('ruanganKelas'), 'name', 'kd_siswa')
+                ->apply();
 
-            $query = $request->search;
-            $order = $request->orderBy === 'true' ? 'desc' : 'asc';
-
-            $jurusanQuery = User::with("ruanganKelas");
-
-            if ($query) {
-                $jurusanQuery->where('nama_jurusan', 'like', '%' . $query . '%');
-            }
-
-            $data = $jurusanQuery->orderBy('name', $order)->paginate(4);
             return (new ApiResponse(200, [$data], 'User class coordinator fetched successfully'))->send();
         } catch (\Exception $e) {
             Log::error('Error fetching jurusan: ' . $e->getMessage());
@@ -37,7 +33,6 @@ class UsersPengurusKelasController extends Controller
 
     public function show(string $id)
     {
-
         try {
             $ruangKelas = User::with('ruanganKelas')->findOrFail($id);
             return (new ApiResponse(200, [$ruangKelas], 'User class coordinator fetched successfully'))->send();
@@ -62,10 +57,10 @@ class UsersPengurusKelasController extends Controller
                 'no_telp' => 'required|string|min:10|max:15',
             ]);
 
-            $kdKepengurusan = $this->generateKepengurusanCode();
+            $kdKepengurusan = new ReportGenerator();
 
-            $user = User::create([
-                'kd_kepengurusan_kelas' => $kdKepengurusan,
+            $data = User::create([
+                'kd_siswa' => $kdKepengurusan->generator("kdStudent", []),
                 'name' => $request->name,
                 'email' => $request->email,
                 'id_ruang_kelas' => $request->id_ruang_kelas,
@@ -74,19 +69,15 @@ class UsersPengurusKelasController extends Controller
                 'no_telp' => $request->no_telp,
             ]);
 
-
-            $data = [
-                'name' => $user->name,
-                'email' => $user->email,
-                'no_telp' => $user->no_telp,
-            ];
             return (new ApiResponse(200, [$data], 'User registered successfully'))->send();
         } catch (ValidationException $e) {
             return (new ApiResponse(422, [], $e->getMessage()))->send();
         } catch (\Exception $e) {
             Log::error('Register error: ' . $e->getMessage());
-
-            return (new ApiResponse(500, [], 'Failed to register user'))->send();
+            if (str_contains($e->getMessage(), 'Duplicate entry')) {
+                return (new ApiResponse(409, [], 'Kode siswa sudah digunakan'))->send(); // 409 Conflict
+            }
+            return (new ApiResponse(500, [], 'Failed to register user' . $e->getMessage()))->send();
         }
     }
 

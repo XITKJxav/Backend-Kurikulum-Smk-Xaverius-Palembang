@@ -1,39 +1,39 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\FileUpload;
+
+use App\Http\Common\Utils\ApiResponse;
+use App\Http\Controllers\Controller;
 
 use App\Http\Requests\FileUploadRequest;
 use App\Models\FileUpload;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
-use App\Http\ApiResponse;
+
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class FileUploadController extends Controller
 {
     public function index(Request $request)
     {
-        $response = new ApiResponse();
         try {
             $order = $request->desc == null || $request->desc != 'true' ? 'asc' : 'desc';
             $data = FileUpload::orderBy('name', $order)->simplePaginate($perPage = 2, $columns = ['*'], $pageName = 'file');
-
-            return response()->json($response->callResponse(200, $data, 'Jurusan fetched successfully'), 200);
+            return (new ApiResponse(200, [$data], 'Upload File Fetched Successfully'))->send();
         } catch (ModelNotFoundException $e) {
-            return response()->json($response->callResponse(404, [], 'File not found'), 404);
+            return (new ApiResponse(404, [], 'File not found'))->send();
         } catch (\Exception $e) {
             Log::error('Error fetching files: ' . $e->getMessage());
-            return response()->json($response->callResponse(500, [], 'File'), 500);
+            return (new ApiResponse(500, [], 'Internal server error'))->send();
         }
     }
 
     public function store(FileUploadRequest $request)
     {
-        $response = new ApiResponse();
         try {
             if (!$request->hasFile('file')) {
-                return response()->json($response->callResponse(400, [], 'File not provided'), 400);
+                return (new ApiResponse(400, [], 'File not provided'))->send();
             }
 
             $file = $request->file('file');

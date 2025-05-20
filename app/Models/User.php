@@ -13,12 +13,12 @@ class User extends Authenticatable
 {
     use HasFactory, Notifiable, HasApiTokens;
     protected $table = 'users';
-    protected $primaryKey = 'kd_kepengurusan_kelas';
+    protected $primaryKey = 'kd_siswa';
     protected $keyType = 'string';
     public $incrementing = false;
 
     protected $fillable = [
-        'kd_murid',
+        'kd_siswa',
         'name',
         'email',
         'no_telp',
@@ -44,7 +44,7 @@ class User extends Authenticatable
 
     public function tokens()
     {
-        return $this->morphMany(PersonalAccessToken::class, 'tokenable', 'tokenable_type', 'tokenable_id', 'kd_kepengurusan_kelas');
+        return $this->morphMany(PersonalAccessToken::class, 'tokenable', 'tokenable_type', 'tokenable_id', 'kd_siswa');
     }
 
     public function ruanganKelas()

@@ -1,28 +1,34 @@
 <?php
 
+namespace App\Http\Common\Helper;
+
 use App\Http\Common\Helper\Generate\GenerateJurusanCode;
 use App\Http\Common\Helper\Generate\GenerateKaryawanCode;
 use App\Http\Common\Helper\Generate\GenerateMuridCode;
+use App\Http\Common\Helper\Generate\GenerateRuanganCode;
 
 class ReportGenerator
 {
-    public function generate(string $type, ?array $data = [])
+    public function generator(string $type, ?array $data = []): string
     {
         switch ($type) {
             case ("kdJurusan"):
-                $generator = new GenerateJurusanCode($data[0]);
+                $generator = new GenerateJurusanCode((string) $data[0]);
                 break;
-            case ("kdStudent"):
+            case ("kdSiswa"):
                 $generator = new GenerateMuridCode();
                 break;
             case ("kdKaryawan"):
                 $generator = new GenerateKaryawanCode();
+                break;
+            case ("kdRuangan"):
+                $generator = new GenerateRuanganCode((string) $data[0], (string) $data[1]);
                 break;
             default:
                 $generator = "";
                 break;
         }
 
-        return $generator;
+        return $generator->generate();
     }
 }

@@ -2,16 +2,16 @@
 
 namespace App\Http\Services;
 
+use App\Http\Common\Utils\ApiResponse;
 use App\Models\User;
-use App\Models\Teacher;
 use Laravel\Sanctum\PersonalAccessToken;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use App\Http\ApiResponse;
 use App\Http\Interfaces\AuthInterface;
+use App\Models\Karyawan;
 use App\Notifications\ResetPasswordNotification;
 use Illuminate\Validation\ValidationException;
 
@@ -21,7 +21,7 @@ class AuthServices implements AuthInterface
     {
         return match ($guard) {
             'user' => User::class,
-            'teacher' => Teacher::class,
+            'karyawan' => Karyawan::class,
             default => abort(404, 'Unsupported model'),
         };
     }
@@ -67,15 +67,14 @@ class AuthServices implements AuthInterface
 
             if ($guard === 'teacher') {
                 $data = [
-                    'kd_guru' => $user->kd_guru,
+                    'kd_karyawan' => $user->kd_guru,
                     'name' => $user->name,
-                    'email' => $user->email,
                     'access_token' => $access_token,
                     'refresh_token' => $refresh_token,
                 ];
             } elseif ($guard === 'user') {
                 $data = [
-                    'kd_pengurus_kelas' => $user->kd_kepengurusan_kelas,
+                    'kd_siswa' => $user->kd_kepengurusan_kelas,
                     'name' => $user->name,
                     'id_ruang_kelas' => $user->id_ruang_kelas,
                     'access_token' => $access_token,

@@ -15,6 +15,6 @@ class Role extends Model
 
     public function teachers()
     {
-        return $this->hasMany(Teacher::class, 'id_role');
+        return $this->hasMany(Karyawan::class, 'id_role');
     }
 }

@@ -2,39 +2,33 @@
 
 namespace App\Http\Controllers\Jurusan;
 
-use App\Http\ApiResponse;
+use App\Http\Common\Utils\ApiResponse;
 use App\Http\Common\utils\TextFormatter;
 use App\Http\Controllers\Controller;
+use App\Http\Common\Utils\Filtering;
 use App\Models\Jurusan;
+use App\Http\Common\Helper\ReportGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class JurusanController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = $request->search;
-            $status = $request->status;
-            $order = $request->orderBy === 'true' ? 'desc' : 'asc';
-            $offLimit = $request->offLimit;
-            $jurusanQuery = Jurusan::query();
 
-            $query && $jurusanQuery->where('nama_jurusan', 'like', '%' . $query . '%');
-            $status && $jurusanQuery->where('status', '=',  $status);
+            $data = (new Filtering($request))
+                ->setBuilder(Jurusan::query(), 'nama_jurusan', 'kd_jurusan')
+                ->apply();
 
-            $data = $offLimit === 'true'
-                ? $jurusanQuery->orderBy('kd_jurusan', $order)->get()
-                : $jurusanQuery->orderBy('kd_jurusan', $order)->paginate(5);
-
-            return (new ApiResponse(200, $data, "Jurusan fetched successfully"))->send();
+            return (new ApiResponse(200, [$data], "Jurusan fetched successfully"))->send();
         } catch (\Exception $e) {
             Log::error('Error fetching jurusan: ' . $e->getMessage());
             return (new ApiResponse(500, [],  'Failed to fetch jurusan'))->send();
         }
     }
-
 
     public function store(Request $request)
     {
@@ -49,8 +43,7 @@ class JurusanController extends Controller
             if ($existingJurusan) {
                 return (new ApiResponse(400, [], 'Jurusan already registered'))->send();
             }
-
-            $kd_jurusan = $this->generateKdJurusan($request->nama_jurusan);
+            $kd_jurusan  = (new ReportGenerator())->generator("kdJurusan", [$request->nama_jurusan]);
 
             $jurusan = Jurusan::create([
                 'kd_jurusan' => $kd_jurusan,
@@ -58,7 +51,7 @@ class JurusanController extends Controller
                 'status' => true,
             ]);
 
-            return response()->json($response->callResponse(201, $jurusan, 'Jurusan created successfully'), 201);
+            return (new ApiResponse(201, [$jurusan], "Jurusan fetched successfully"))->send();
         } catch (\Exception $e) {
             Log::error('Error creating jurusan: ' . $e->getMessage());
             return response()->json([
@@ -68,62 +61,36 @@ class JurusanController extends Controller
         }
     }
 
-
     public function show(string $id)
     {
-        $response = new ApiResponse();
-
         try {
             $jurusan = Jurusan::findOrFail($id);
-
-            return response()->json($response->callResponse(200, $jurusan, 'Jurusan retrieved successfully'), 200);
+            return (new ApiResponse(200, [$jurusan], 'Jurusan retrieved successfully'))->send();
         } catch (ModelNotFoundException $e) {
             Log::error('Jurusan not found: ' . $e->getMessage());
-            return response()->json($response->callResponse(404, [], 'Jurusan not found'), 404);
+            return (new ApiResponse(404, [], 'Jurusan not found'))->send();
         } catch (\Exception $e) {
             Log::error('Error retrieving jurusan: ' . $e->getMessage());
-            return response()->json($response->callResponse(500, [], 'Failed to retrieve jurusan'), 500);
+            return (new ApiResponse(500, [], 'Failed to retrieve jurusan'))->send();
         }
     }
 
     public function update(Request $request, string $id)
     {
-        $response = new ApiResponse();
-
         try {
             $jurusan = Jurusan::where('kd_jurusan', $id)->firstOrFail();
 
             $jurusan->update([
                 'status' => $request->status,
             ]);
-
-            return response()->json($response->callResponse(200, $jurusan, 'Jurusan updated successfully'), 200);
+            return (new ApiResponse(200, [$jurusan], 'Jurusan updated successfully'))->send();
         } catch (ModelNotFoundException $e) {
             Log::error('Jurusan not found for update: ' . $e->getMessage());
-            return response()->json($response->callResponse(404, [], 'Jurusan not found'), 404);
+            return (new ApiResponse(404, [], 'Jurusan not found'))->send();
         } catch (\Exception $e) {
             Log::error('Error updating jurusan: ' . $e->getMessage());
-            return response()->json($response->callResponse(500, [], 'Failed to update jurusan'), 500);
+
+            return (new ApiResponse(500, [], 'Failed to update jurusan'))->send();
         }
-    }
-
-    public function generateKdJurusan($nama_jurusan)
-    {
-        $excludeWords = ['dan', 'atau', '&', '|', 'dan.', 'atau.', '.'];
-        $words = explode(' ', $nama_jurusan);
-        $kd_jurusan = '';
-
-        foreach ($words as $word) {
-            $cleanedWord = preg_replace('/[^A-Za-z0-9]/', '', $word);
-            if (in_array(strtolower($cleanedWord), $excludeWords)) {
-                continue;
-            }
-
-            $kd_jurusan .= strtoupper(substr($cleanedWord, 0, 1));
-        }
-
-        $kd_jurusan .= '-' . date('YmdHis');
-
-        return $kd_jurusan;
     }
 }

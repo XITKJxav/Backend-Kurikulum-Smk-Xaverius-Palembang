@@ -9,13 +9,13 @@ class Karyawan extends Model
 {
     use HasFactory;
 
-    protected $table = 'teacher';
-    protected $primaryKey = 'kd_guru';
+    protected $table = 'karyawan';
+    protected $primaryKey = 'kd_karyawan';
     public $incrementing = false;
     protected $keyType = 'string';
 
     protected $fillable = [
-        'kd_guru',
+        'kd_karyawan',
         'name',
         'email',
         'no_telp',
