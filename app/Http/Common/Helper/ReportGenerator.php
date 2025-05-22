@@ -2,8 +2,10 @@
 
 namespace App\Http\Common\Helper;
 
+use App\Http\Common\Helper\Generate\GenerateAgendaUpacaraCode;
 use App\Http\Common\Helper\Generate\GenerateJurusanCode;
 use App\Http\Common\Helper\Generate\GenerateKaryawanCode;
+use App\Http\Common\Helper\Generate\GenerateMataPelajaranCode;
 use App\Http\Common\Helper\Generate\GenerateMuridCode;
 use App\Http\Common\Helper\Generate\GenerateRuanganCode;
 
@@ -23,6 +25,15 @@ class ReportGenerator
                 break;
             case ("kdRuangan"):
                 $generator = new GenerateRuanganCode((string) $data[0], (string) $data[1]);
+                break;
+            case ("kdAgendaUpacara"):
+                $generator = new GenerateAgendaUpacaraCode();
+                break;
+            case ("idMataPelajaran"):
+                $generator = new GenerateMataPelajaranCode();
+                break;
+            case ("idPengajar"):
+                $generator = new GeneratePengajarCode();
                 break;
             default:
                 $generator = "";

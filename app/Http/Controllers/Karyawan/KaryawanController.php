@@ -22,6 +22,7 @@ class KaryawanController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
+
             $data = (new Filtering($request))
                 ->setBuilder(Karyawan::query(), 'nama', 'kd_karyawan')
                 ->apply();

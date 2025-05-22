@@ -43,4 +43,12 @@ class ApiResponse
             default => 'Unknown response'
         };
     }
+    public static function callResponse(int $statusCode, $data, string $message): array
+    {
+        return [
+            'status' => $statusCode,
+            'message' => $message,
+            'data' => $data
+        ];
+    }
 }

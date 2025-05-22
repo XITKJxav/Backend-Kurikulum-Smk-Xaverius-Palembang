@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Role;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Str;
 
 class RoleSeeder extends Seeder
 {
@@ -14,10 +15,22 @@ class RoleSeeder extends Seeder
     public function run(): void
     {
         Role::insert([
-            ['name' => 'Admin'],
-            ['name' => 'Guru'],
-            ['name' => 'kurikulum'],
-            ['name' => 'Kepala Sekolah']
+            [
+                'id_role' => Str::uuid() . '-ADMIN',
+                'name'    => 'ADMIN',
+            ],
+            [
+                'id_role' => Str::uuid() . '-Guru',
+                'name'    => 'GURU',
+            ],
+            [
+                'id_role' => Str::uuid() . '-Kurikulum',
+                'name'    => 'KURIKULUM',
+            ],
+            [
+                'id_role' => Str::uuid() .  '-KEPALASEKOLAH',
+                'name'    => 'KEPALASEKOLAH',
+            ],
         ]);
     }
 }

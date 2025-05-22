@@ -18,19 +18,21 @@ class FileUploadController extends Controller
     public function index(Request $request)
     {
         try {
-            $order = $request->desc == null || $request->desc != 'true' ? 'asc' : 'desc';
-            $data = FileUpload::orderBy('name', $order)->simplePaginate($perPage = 2, $columns = ['*'], $pageName = 'file');
+            $order = ($request->query('desc') === 'true') ? 'desc' : 'asc';
+            $data = FileUpload::orderBy('name', $order)->simplePaginate(2, ['*'], 'file');
             return (new ApiResponse(200, [$data], 'Upload File Fetched Successfully'))->send();
-        } catch (ModelNotFoundException $e) {
-            return (new ApiResponse(404, [], 'File not found'))->send();
         } catch (\Exception $e) {
+            if ($e instanceof ModelNotFoundException) {
+                return (new ApiResponse(404, [], 'File not found'))->send();
+            }
             Log::error('Error fetching files: ' . $e->getMessage());
             return (new ApiResponse(500, [], 'Internal server error'))->send();
         }
     }
 
-    public function store(FileUploadRequest $request)
+    public function store(Request $request)
     {
+        $response = new ApiResponse();
         try {
             if (!$request->hasFile('file')) {
                 return (new ApiResponse(400, [], 'File not provided'))->send();
@@ -41,6 +43,7 @@ class FileUploadController extends Controller
             $extension = $file->getClientOriginalExtension();
             $uniqueName = uniqid('', true) . '-' . $filename . '.' . $extension;
 
+
             Log::info('Preparing to store file with name: ' . $uniqueName);
 
             $path = $file->storeAs('uploads', $uniqueName, 'public');
@@ -50,17 +53,17 @@ class FileUploadController extends Controller
                 return response()->json($response->callResponse(500, [], 'Failed to store the file'), 500);
             }
 
-            Log::info('File stored successfully at: ' . $path);
-
+            Log::info("File stored successfully at: {$path}");
             $uploadedFile = FileUpload::create([
                 'url_id' => $uniqueName,
                 'name' => $filename,
             ]);
 
             return response()->json($response->callResponse(201, $uploadedFile, 'File uploaded successfully'), 201);
-        } catch (ModelNotFoundException $e) {
-            return response()->json($response->callResponse(404, [], 'File not found'), 404);
         } catch (\Exception $e) {
+            if ($e instanceof ModelNotFoundException) {
+                return response()->json($response->callResponse(404, [], 'File not found'), 404);
+            }
             Log::error('Error uploading file: ' . $e->getMessage());
             return response()->json($response->callResponse(500, [], 'Internal Server Error'), 500);
         }
@@ -78,9 +81,10 @@ class FileUploadController extends Controller
             }
 
             return response()->json($response->callResponse(200, $file, 'File'), 200);
-        } catch (ModelNotFoundException $e) {
-            return response()->json($response->callResponse(404, [], 'File not found'), 404);
         } catch (\Exception $e) {
+            if ($e instanceof ModelNotFoundException) {
+                return response()->json($response->callResponse(404, [], 'File not found'), 404);
+            }
             Log::error('Error retrieving file: ' . $e->getMessage());
             return response()->json($response->callResponse(500, [], 'Internal Server Error'), 500);
         }
@@ -109,11 +113,10 @@ class FileUploadController extends Controller
                 return response()->json($response->callResponse(404, [], 'File not found'), 404);
             }
             $file->delete();
-
-            return response()->json($response->callResponse(200, [], 'File deleted successfully'), 200);
-        } catch (ModelNotFoundException $e) {
-            return response()->json($response->callResponse(404, [], 'File not found'), 404);
         } catch (\Exception $e) {
+            if ($e instanceof ModelNotFoundException) {
+                return response()->json($response->callResponse(404, [], 'File not found'), 404);
+            }
             Log::error('Error deleting file: ' . $e->getMessage());
             return response()->json($response->callResponse(500, [], 'Internal Server Error'), 500);
         }

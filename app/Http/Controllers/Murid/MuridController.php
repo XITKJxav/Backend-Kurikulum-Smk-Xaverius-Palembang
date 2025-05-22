@@ -48,7 +48,6 @@ class MuridController extends Controller
     public function store(Request $request)
     {
         try {
-
             $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email',
@@ -60,7 +59,7 @@ class MuridController extends Controller
             $kdKepengurusan = new ReportGenerator();
 
             $data = User::create([
-                'kd_siswa' => $kdKepengurusan->generator("kdStudent", []),
+                'kd_siswa' => $kdKepengurusan->generator("kdSiswa", []),
                 'name' => $request->name,
                 'email' => $request->email,
                 'id_ruang_kelas' => $request->id_ruang_kelas,
@@ -124,13 +123,6 @@ class MuridController extends Controller
         }
     }
 
-    private function generateKepengurusanCode(): string
-    {
-        $latest = User::orderBy('kd_kepengurusan_kelas', 'desc')->first();
-        $lastCode = $latest ? intval(substr($latest->kd_kepengurusan_kelas, -3)) : 0;
-        $newCode = str_pad($lastCode + 1, 3, '0', STR_PAD_LEFT);
-        return 'KK-' . $newCode;
-    }
 
     public function login(Request $request): JsonResponse
     {
@@ -146,6 +138,7 @@ class MuridController extends Controller
     {
         return (new AuthServices())->handleRequestCode($request, "user");
     }
+
     public function resetWithCode(Request $request)
     {
         return (new AuthServices())->handleResetWithCode($request, "user");

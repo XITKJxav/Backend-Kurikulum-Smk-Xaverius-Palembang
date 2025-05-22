@@ -18,7 +18,6 @@ class JurusanController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-
             $data = (new Filtering($request))
                 ->setBuilder(Jurusan::query(), 'nama_jurusan', 'kd_jurusan')
                 ->apply();
