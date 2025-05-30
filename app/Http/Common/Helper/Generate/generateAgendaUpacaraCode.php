@@ -12,12 +12,15 @@ class GenerateAgendaUpacaraCode implements InterfaceGenerator
     {
         $latest = AgendaUpacara::orderBy('kd_agendaupacara', 'desc')->first();
 
-        if ($latest && preg_match('/S-(\d+)/', $latest->kd_agendaupacara, $matches)) {
-            $nextNumber = (int)$matches[1] + 1;
+        if ($latest) {
+            $lastNumberStr = substr($latest->kd_agendaupacara, 2);
+            $lastNumber = intval($lastNumberStr);
         } else {
-            $nextNumber = 1;
+            $lastNumber = 0;
         }
 
-        return 'A-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        $newNumber = $lastNumber + 1;
+        $newCodeNumber = str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+        return 'A-' . $newCodeNumber;
     }
 }

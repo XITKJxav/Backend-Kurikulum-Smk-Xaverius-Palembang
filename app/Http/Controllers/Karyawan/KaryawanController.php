@@ -24,7 +24,7 @@ class KaryawanController extends Controller
         try {
 
             $data = (new Filtering($request))
-                ->setBuilder(Karyawan::query(), 'nama', 'kd_karyawan')
+                ->setBuilder(Karyawan::with("role"), 'nama', 'kd_karyawan')
                 ->apply();
 
             return (new ApiResponse(200, [$data], 'User Karyawan fetched successfully'))->send();
@@ -37,14 +37,14 @@ class KaryawanController extends Controller
     public function show(string $id)
     {
         try {
-            $ruangKelas = User::with('ruanganKelas')->findOrFail($id);
-            return (new ApiResponse(200, [$ruangKelas], 'User class coordinator fetched successfully'))->send();
+            $ruangKelas = Karyawan::with('role')->findOrFail($id);
+            return (new ApiResponse(200, [$ruangKelas], 'User karyawan fetched successfully'))->send();
         } catch (ModelNotFoundException $e) {
             Log::error('Ruang kelas not found: ' . $e->getMessage());
-            return (new ApiResponse(404, [], 'User class coordinator not found'))->send();
+            return (new ApiResponse(404, [], 'User karyawan not found'))->send();
         } catch (\Exception $e) {
             Log::error('Error retrieving jurusan: ' . $e->getMessage());
-            return (new ApiResponse(500, [], 'Failed to retrieve user class coordinator'))->send();
+            return (new ApiResponse(500, [], 'Failed to retrieve karyawan' . $e->getMessage()))->send();
         }
     }
 
@@ -52,14 +52,14 @@ class KaryawanController extends Controller
     {
         try {
             $generator = new ReportGenerator();
-            $kdKepengurusan = $generator->generator("kdSiswa");
+            $kdKepengurusan = $generator->generator("kdKaryawan");
 
             $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users,email',
                 'password' => 'required|string|min:6|confirmed',
-                'id_ruang_kelas' => 'required',
                 'no_telp' => 'required|string|min:10|max:15',
+                'id_role' => 'required',
             ]);
 
             $data = Karyawan::create([
@@ -87,19 +87,20 @@ class KaryawanController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'name' => 'sometimes|string|max:255',
-                'email' => 'sometimes|email|unique:users,email,' . $id,
+                'email' => 'sometimes|email|unique:karyawan,email,' . $id . ',kd_karyawan',
                 'no_telp' => 'sometimes|string|min:10|max:15',
+                'id_role' => 'sometimes|string',
                 'status' => 'sometimes|boolean',
                 'password' => 'sometimes|nullable|string|min:6',
             ]);
 
             if ($validator->fails()) {
-                return (new ApiResponse(400, [], 'Error 400 Bad Request'))->send();
+                return (new ApiResponse(400, [],  'Error 400 Bad Request ' . $validator->errors()))->send();
             }
 
             $user = Karyawan::findOrFail($id);
 
-            $updateData = $request->only(['name', 'email', 'no_telp', 'id_ruang_kelas', 'status']);
+            $updateData = $request->only(['name', 'email', 'no_telp', 'id_role', 'status']);
 
             if ($request->filled('password')) {
                 $updateData['password'] = bcrypt($request->password);

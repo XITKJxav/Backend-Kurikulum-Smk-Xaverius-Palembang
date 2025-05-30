@@ -11,9 +11,17 @@ class GenerateKaryawanCode implements InterfaceGenerator
 
     public function generate(): string
     {
-        $latest = $this->karyawan::orderBy('kd_karyawan', 'desc')->first();
-        $lastCode = $latest ? intval(substr($latest->kd_kepengurusan_kelas, -3)) : 0;
-        $newCode = str_pad($lastCode + 1, 3, '0', STR_PAD_LEFT);
-        return 'K-' . $newCode;
+        $latest = Karyawan::orderBy('kd_karyawan', 'desc')->first();
+
+        if ($latest) {
+            $lastNumberStr = substr($latest->kd_karyawan, 2);
+            $lastNumber = intval($lastNumberStr);
+        } else {
+            $lastNumber = 0;
+        }
+
+        $newNumber = $lastNumber + 1;
+        $newCodeNumber = str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+        return 'K-' . $newCodeNumber;
     }
 }

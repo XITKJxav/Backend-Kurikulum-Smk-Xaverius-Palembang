@@ -7,10 +7,13 @@ use App\Http\Common\Utils\ApiResponse;
 use App\Http\Common\Utils\Filtering;
 use App\Http\Controllers\Controller;
 use App\Models\AgendaUpacara;
+use App\Models\Hari;
 use App\Models\StatusAgendaUpacara;
-use Dotenv\Exception\ValidationException;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class AgendaUpacaraController extends Controller
 {
@@ -19,8 +22,18 @@ class AgendaUpacaraController extends Controller
     {
         try {
             $data = (new Filtering($request))
-                ->setBuilder(AgendaUpacara::with('statusAgendaUpacara'), 'jam_upacara', 'kd_agendaupacara')
+                ->setBuilder(AgendaUpacara::with('statusAgendaUpacara', 'hari'), 'jam_upacara', 'kd_agendaupacara')
                 ->apply();
+            $tanggal = Carbon::now('Asia/Jakarta')->format('Y-m-d');
+
+            $statusCompleted = StatusAgendaUpacara::where('nama', 'Completed')->value('id_status_upacara');
+            $statusCancelled = StatusAgendaUpacara::where('nama', 'Cancelled')->value('id_status_upacara');
+
+            AgendaUpacara::whereDate('tanggal_upacara', '<', $tanggal)
+                ->where('id_status_upacara', '!=', $statusCompleted)
+                ->where('id_status_upacara', '!=', $statusCancelled)
+                ->update(['id_status_upacara' => $statusCompleted]);
+
 
             return (new ApiResponse(200, [$data], "Agenda Upacara fetched successfully"))->send();
         } catch (\Exception $e) {
@@ -45,17 +58,26 @@ class AgendaUpacaraController extends Controller
     {
         try {
             $validated = $request->validate([
-                'tanggal_upacara'    => 'required|date',
-                'id_status_upacara'  => 'required|exists:statusagendaupacara,id_status_upacara',
+                'tanggal_upacara' => 'required|date',
             ]);
+
+            $carbonDate = Carbon::parse($validated['tanggal_upacara']);
+            $namaHari = $carbonDate->locale('id')->isoFormat('dddd');
+
+            $hari = Hari::whereRaw('LOWER(nama) = ?', [strtolower($namaHari)])->first();
+
+            if (!$hari) {
+                return (new ApiResponse(404, [], "Hari dengan nama {$namaHari} tidak ditemukan"))->send();
+            }
 
             $generator = new ReportGenerator();
             $kdAgendaupacara = $generator->generator("kdAgendaUpacara");
 
             $data = AgendaUpacara::create([
-                'kd_agendaupacara'   => $kdAgendaupacara,
-                'tanggal_upacara'    => $validated['tanggal_upacara'],
-                'id_status_upacara'  => $validated['id_status_upacara'],
+                'kd_agendaupacara'  => $kdAgendaupacara,
+                'tanggal_upacara'   => $validated['tanggal_upacara'],
+                'id_status_upacara' => "SU-101",
+                'id_hari'           => $hari->id,
             ]);
 
             return (new ApiResponse(200, [$data], 'Agenda Upacara successfully'))->send();
@@ -63,9 +85,11 @@ class AgendaUpacaraController extends Controller
             return (new ApiResponse(422, [], $e->getMessage()))->send();
         } catch (\Exception $e) {
             Log::error('Agenda upacara error: ' . $e->getMessage());
-            return (new ApiResponse(500, [], 'Failed to agenda upacara'))->send();
+            return (new ApiResponse(500, [], 'Failed to agenda upacara' . $e->getMessage()))->send();
         }
     }
+
+
 
     public function show(string $id)
     {
@@ -85,23 +109,19 @@ class AgendaUpacaraController extends Controller
     {
         try {
             $validated = $request->validate([
-                'tanggal_upacara'    => 'required|date',
                 'id_status_upacara'  => 'required|exists:statusagendaupacara,id_status_upacara',
-                'jam_upacara'        => 'nullable|date_format:H:i',
             ]);
 
             $agenda = AgendaUpacara::findOrFail($id);
 
             $agenda->update([
-                'tanggal_upacara'    => $validated['tanggal_upacara'],
                 'id_status_upacara'  => $validated['id_status_upacara'],
-                'jam_upacara'        => $validated['jam_upacara'] ?? $agenda->jam_upacara,
             ]);
 
             return (new ApiResponse(200, [$agenda], 'Agenda Upacara updated successfully'))->send();
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             return (new ApiResponse(422, [], $e->validator->errors()->first()))->send();
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        } catch (ModelNotFoundException $e) {
             return (new ApiResponse(404, [], 'Agenda Upacara not found'))->send();
         } catch (\Exception $e) {
             Log::error('Update agenda error: ' . $e->getMessage());
@@ -109,8 +129,5 @@ class AgendaUpacaraController extends Controller
         }
     }
 
-    public function destroy(string $id)
-    {
-        //
-    }
+    public function destroy(string $id) {}
 }

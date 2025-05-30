@@ -3,22 +3,23 @@
 namespace App\Http\Common\Helper\Generate;
 
 use App\Http\Common\Helper\interfaces\InterfaceGenerator;
-use App\Models\AgendaUpacara;
 use App\Models\MataPelajaran;
 
 class GenerateMataPelajaranCode implements InterfaceGenerator
 {
-
     public function generate(): string
     {
         $latest = MataPelajaran::orderBy('id_mata_pelajaran', 'desc')->first();
 
-        if ($latest && preg_match('/S-(\d+)/', $latest->id_mata_pelajaran, $matches)) {
-            $nextNumber = (int)$matches[1] + 1;
+        if ($latest) {
+            $lastNumberStr = substr($latest->id_mata_pelajaran, 3);
+            $lastNumber = intval($lastNumberStr);
         } else {
-            $nextNumber = 1;
+            $lastNumber = 0;
         }
 
-        return 'MP-' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        $newNumber = $lastNumber + 1;
+        $newCodeNumber = str_pad($newNumber, 3, '0', STR_PAD_LEFT);
+        return 'MP-' . $newCodeNumber;
     }
 }

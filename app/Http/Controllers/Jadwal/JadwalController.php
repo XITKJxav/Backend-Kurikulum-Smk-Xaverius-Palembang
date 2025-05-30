@@ -3,176 +3,214 @@
 namespace App\Http\Controllers\Jadwal;
 
 use App\Http\Common\Utils\ApiResponse;
+use App\Http\Common\Utils\Filtering;
 use App\Http\Controllers\Controller;
-use App\Models\AgendaUpacara;
-use Illuminate\Http\Request;
+use App\Models\Hari;
+use App\Models\Jadwal;
 use App\Models\JamBelajar;
-use App\Models\JamIstirahat;
 use Carbon\Carbon;
+use Dotenv\Exception\ValidationException;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class JadwalController extends Controller
 {
-    public function printTimeWithUpacara(Request $request)
+
+    public function getJadwal(Request $request)
     {
-        $tanggal = $tanggal = Carbon::now('Asia/Jakarta')->format('Y-m-d');;
+        try {
+            $id_kelas = $request->id_ruangan_kelas;
+            $id_hari = $request->id_hari;
+            $id_jam = $request->kd_jam_pembelajaran;
 
-        $jamBelajar = JamBelajar::orderBy('jam_mulai')->get(['id', 'jam_mulai', 'jam_selesai'])->toArray();
-        $jamIstirahat = JamIstirahat::orderBy('id')->get(['id', 'durasi'])->toArray();
-        $adaUpacara = AgendaUpacara::whereDate('tanggal_upacara', $tanggal)->exists();
+            $data = Jadwal::with(['mataPelajaran', 'pengajar', 'jamBelajar', 'hari', 'guruPiket']);
 
-        $hasil = [];
-        $durasiAsli = null;
+            if ($id_kelas && $id_hari && $id_jam) {
+                $data = $data->where('id_ruangan_kelas', $id_kelas)
+                    ->where('id_hari', $id_hari)
+                    ->where('kd_jam_pembelajaran', $id_jam);
+            } elseif ($id_kelas) {
+                $data = $data->where('id_ruangan_kelas', $id_kelas);
+            }
 
-        if (count($jamBelajar) > 0) {
+            $data = $data->get();
+
+            return (new ApiResponse(200, [$data], "Jadwal pembelajaran fetched successfully"))->send();
+        } catch (\Exception $e) {
+            Log::error('Error fetching Jadwal pembelajaran: ' . $e->getMessage());
+            return (new ApiResponse(500, [], 'Failed to fetch jadwal pembelajaran'))->send();
+        }
+    }
+
+
+
+    public function getDay(Request $request)
+    {
+        try {
+            $data = Hari::all();
+
+            return (new ApiResponse(200, [$data], "Day fetched successfully"))->send();
+        } catch (\Exception $e) {
+            Log::error('Error fetching agenda upacara: ' . $e->getMessage());
+            return (new ApiResponse(500, [],  'Failed to fetch Day'))->send();
+        }
+    }
+
+
+
+    public function updateJadwal(Request $request)
+    {
+        Log::info('UpdateJadwal Request:', $request->all());
+
+        // Validasi manual
+        $validator = Validator::make($request->all(), [
+            'id_ruangan_kelas'       => 'required|integer|exists:ruangankelas,id',
+            'id_hari'                => 'required|integer|exists:hari,id',
+            'kd_jam_pembelajaran'    => 'required|integer|exists:jam_belajar,id',
+            'id_mata_pelajaran'      => 'nullable|string|exists:mata_pelajaran,id_mata_pelajaran',
+            'id_pengajar'            => 'nullable|string|exists:karyawan,kd_karyawan',
+            'kd_guru_piket'          => 'nullable|string|exists:karyawan,kd_karyawan',
+        ]);
+
+        // Kirim error validasi
+        if ($validator->fails()) {
+            return (new ApiResponse(422, [], $validator->errors()->first() . $request->id_ruangan_kelas . "jooo" . $request->id_hari))->send();
+        }
+
+        $validated = $validator->validated();
+
+        // Ambil data
+        $id_ruangan_kelas    = (int) $validated['id_ruangan_kelas'];
+        $id_hari             = (int) $validated['id_hari'];
+        $kd_jam_pembelajaran = (int) $validated['kd_jam_pembelajaran'];
+        $id_mata_pelajaran   = $validated['id_mata_pelajaran'] ?? null;
+        $id_pengajar         = $validated['id_pengajar'] ?? null;
+        $kd_guru_piket       = $validated['kd_guru_piket'] ?? null;
+
+        try {
+            // Cek jadwal eksisting
+            $jadwal = Jadwal::where('id_ruangan_kelas', $id_ruangan_kelas)
+                ->where('id_hari', $id_hari)
+                ->where('kd_jam_pembelajaran', $kd_jam_pembelajaran)
+                ->first();
+
+            if (!$jadwal) {
+                return (new ApiResponse(404, [], 'Jadwal tidak ditemukan'))->send();
+            }
+
+            // Cek bentrok pengajar, kalau pengajar tidak null
+            if ($id_pengajar) {
+                $bentrok = Jadwal::where('id_pengajar', $id_pengajar)
+                    ->where('id_hari', $id_hari)
+                    ->where('kd_jam_pembelajaran', $kd_jam_pembelajaran)
+                    ->where('id_ruangan_kelas', '!=', $id_ruangan_kelas)
+                    ->exists();
+
+                if ($bentrok) {
+                    return (new ApiResponse(409, [], "Guru {$id_pengajar} sudah memiliki jadwal pada waktu tersebut di kelas lain"))->send();
+                }
+            }
+
+            // Update data (gunakan array_filter agar null tidak diinput)
+            $jadwal->update(array_filter([
+                'id_mata_pelajaran' => $id_mata_pelajaran,
+                'id_pengajar'       => $id_pengajar,
+                'kd_guru_piket'     => $kd_guru_piket,
+            ], fn($v) => !is_null($v)));
+
+            return (new ApiResponse(200, [], 'Jadwal berhasil diperbarui'))->send();
+        } catch (\Exception $e) {
+            Log::error('Update schedule error: ' . $e->getMessage());
+            return (new ApiResponse(500, [], 'Gagal memperbarui jadwal: ' . $request->id_ruangan_kelas . $e->getMessage()))->send();
+        }
+    }
+
+
+
+    public function createJadwal(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'id_ruangan_kelas' => ['required'],
+            ]);
+
+
+            $idKelas = $validated['id_ruangan_kelas'];
+            $results = [];
+
+            $hariList = Hari::all();
+            $jamList = JamBelajar::all();
+
+            foreach ($hariList as $hari) {
+                foreach ($jamList as $jam) {
+                    $exists = Jadwal::where([
+                        'id_ruangan_kelas' => $idKelas,
+                        'id_hari' => $hari->id,
+                        'kd_jam_pembelajaran' => $jam->id,
+                    ])->exists();
+
+                    if (!$exists) {
+                        $jadwal = Jadwal::create([
+                            'id_ruangan_kelas' => $idKelas,
+                            'id_hari' => $hari->id,
+                            'kd_jam_pembelajaran' => $jam->id,
+                            'id_mata_pelajaran' => null,
+                            'id_pengajar' => null,
+                            'kd_guru_piket' => null,
+                        ]);
+                        $results[] = $jadwal;
+                    }
+                }
+            }
+
+            return (new ApiResponse(201, $results, "Jadwal berhasil dibuat otomatis berdasarkan semua kombinasi hari dan jam"))->send();
+        } catch (ValidationException $e) {
+            return (new ApiResponse(422, [], $e->getMessage()))->send();
+        } catch (\Exception $e) {
+            Log::error('Create schedule error: ' . $e->getMessage());
+            return (new ApiResponse(500, [], 'Gagal membuat jadwal'))->send();
+        }
+    }
+    public function fetchDurationTimeStudy(Request $request)
+    {
+        try {
+            $jamBelajar = JamBelajar::get();
             $awal = Carbon::createFromTimeString($jamBelajar[0]['jam_mulai']);
             $akhir = Carbon::createFromTimeString($jamBelajar[0]['jam_selesai']);
             $durasiAsli = $awal->diffInMinutes($akhir);
-        }
-
-        $waktuMulai = $adaUpacara
-            ? Carbon::createFromTimeString('07:45:00')
-            : Carbon::createFromTimeString($jamBelajar[0]['jam_mulai']);
-
-        if ($adaUpacara) {
-            $hasil[] = [
-                'type' => 'upacara',
-                'jam_mulai' => '07:00:00',
-                'jam_selesai' => '07:45:00',
-                "id_jam" => 0,
-                "jam_ke" => 0,
-                'durasi' => '45 menit',
+            $data = [
+                "duration_time_study" => $durasiAsli,
             ];
+            return (new ApiResponse(200, $data, 'Durasi pembelajaran berhasil ditemukan'))->send();
+        } catch (\Exception $e) {
+            Log::error('Get duration error: ' . $e->getMessage());
+            return (new ApiResponse(500, [], 'Gagal mendapatkan durasi pembelajaran'))->send();
         }
-
-        $istirahatIndex = 0;
-
-        foreach ($jamBelajar as $index => $sesi) {
-            // Hitung durasi yang disesuaikan
-            if ($adaUpacara) {
-                if ($index <= 3) {
-                    $durasi = max($durasiAsli - 10, 1);
-                } else if ($index <= 6) {
-                    $durasi = max($durasiAsli - 5, 1);
-                } else {
-                    $durasi = $durasiAsli;
-                }
-            } else {
-                $durasi = $durasiAsli;
-            }
-
-            // Tambahkan sesi pembelajaran
-            $jamSelesai = $waktuMulai->copy()->addMinutes($durasi);
-            $hasil[] = [
-                'type' => 'pembelajaran',
-                'id_jam' => $sesi['id'],
-                'jam_ke' => $index + 1,
-                'jam_mulai' => $waktuMulai->format('H:i:s'),
-                'jam_selesai' => $jamSelesai->format('H:i:s'),
-                'durasi' => $durasi . ' menit',
-            ];
-            $waktuMulai = $jamSelesai->copy();
-
-            if (in_array($index + 1, [4, 7]) && isset($jamIstirahat[$istirahatIndex])) {
-                $durasiIstirahat = (int) $jamIstirahat[$istirahatIndex]['durasi'];
-                $istirahatSelesai = $waktuMulai->copy()->addMinutes($durasiIstirahat);
-
-                $hasil[] = [
-                    'type' => 'istirahat',
-                    'id_jam' => $jamIstirahat[$istirahatIndex]['id'],
-                    'jam_mulai' => $waktuMulai->format('H:i:s'),
-                    'jam_selesai' => $istirahatSelesai->format('H:i:s'),
-                    'durasi' => $durasiIstirahat . ' menit',
-                ];
-
-                $waktuMulai = $istirahatSelesai->copy();
-                $istirahatIndex++;
-            }
-        }
-
-        return (new ApiResponse(
-            200,
-            [
-                'jadwal' => $hasil,
-                'ada_upacara' => $adaUpacara,
-                'durasi_asli' => $durasiAsli,
-            ],
-            $adaUpacara
-                ? "Jadwal dipotong 10/5 menit karena ada upacara"
-                : "Jadwal normal tanpa pengurangan"
-        ))->send();
     }
-
-
-
-    function scheduleStudy(array $jamBelajar, array $jamIstirahat): array
+    public function updateDurationTimeStudy(Request $request)
     {
-        $hasil = [];
-        $durasiMenit = null;
+        try {
+            $validatedDuration = $request->duration_time_study;
 
-        if (count($jamBelajar) > 0) {
-            $awal = Carbon::createFromTimeString($jamBelajar[0]['jam_mulai']);
-            $akhir = Carbon::createFromTimeString($jamBelajar[0]['jam_selesai']);
-            $durasiMenit = $awal->diffInMinutes($akhir);
-        }
-
-        $waktuMulai = null;
-        $istirahatIndex = 0;
-
-        foreach ($jamBelajar as $index => $sesi) {
-            if (!$waktuMulai) {
-                $waktuMulai = Carbon::createFromTimeString($sesi['jam_mulai']);
+            if (!is_numeric($validatedDuration) || $validatedDuration <= 0) {
+                return (new ApiResponse(422, [], 'Durasi tidak valid'))->send();
             }
 
-            $jamSelesai = $waktuMulai->copy()->addMinutes($durasiMenit);
-            $hasil[] = [
-                'type' => 'pembelajaran',
-                'id_jam' => $sesi['id'],
-                'jam_ke' => $index + 1,
-                'jam_mulai' => $waktuMulai->format('H:i:s'),
-                'jam_selesai' => $jamSelesai->format('H:i:s'),
-            ];
-            $waktuMulai = $jamSelesai->copy();
+            $startTime = Carbon::createFromTimeString('07:00:00');
+            $jamBelajar = JamBelajar::orderBy('kd_jam_pembelajaran')->get();
 
-            if (($index + 1 == 4 || $index + 1 == 7) && isset($jamIstirahat[$istirahatIndex])) {
-                $durasiIstirahat = (int) $jamIstirahat[$istirahatIndex]['durasi'];
-                $istirahatSelesai = $waktuMulai->copy()->addMinutes($durasiIstirahat);
+            foreach ($jamBelajar as $jam) {
+                $jam->jam_mulai = $startTime->format('H:i');
+                $jam->jam_selesai = $startTime->copy()->addMinutes($validatedDuration)->format('H:i');
+                $jam->save();
 
-                $hasil[] = [
-                    'type' => 'istirahat',
-                    'id_jam' => $jamIstirahat[$istirahatIndex]['id'],
-                    'jam_mulai' => $waktuMulai->format('H:i:s'),
-                    'jam_selesai' => $istirahatSelesai->format('H:i:s'),
-                    'durasi' => $durasiIstirahat . ' menit',
-                ];
-
-                $waktuMulai = $istirahatSelesai->copy();
-                $istirahatIndex++;
+                $startTime->addMinutes($validatedDuration);
             }
+
+            return (new ApiResponse(200, $jamBelajar, "Berhasil memperbarui durasi jam belajar"))->send();
+        } catch (\Exception $e) {
+            return (new ApiResponse(500, [], 'Gagal memperbarui jam belajar: ' . $e->getMessage()))->send();
         }
-
-        return $hasil;
     }
-
-
-    public function printTime(Request $request)
-    {
-        $jamBelajar = JamBelajar::orderBy('jam_mulai')->get(['id', 'jam_mulai', 'jam_selesai'])->toArray();
-        $jamIstirahat = JamIstirahat::orderBy('id')->get(['id', 'durasi'])->toArray();
-
-        $jam = $this->scheduleStudy($jamBelajar, $jamIstirahat);
-
-        $data = [
-            'jadwal' => $jam
-        ];
-
-        return (new ApiResponse(200, $data, "Success fetch schedule"))->send();
-    }
-
-
-
-
-
-    public function updateJamBelajar(Request $request) {}
-
-    public function updateJamIstirahat(Request $request) {}
 }

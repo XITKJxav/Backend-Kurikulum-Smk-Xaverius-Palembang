@@ -15,25 +15,29 @@ class HariSeeder extends Seeder
     {
         DB::table('hari')->insert([
             [
-                'nama' => 'Senin'
+                'nama' => 'Senin',
+                'created_at' => now(),
+                'updated_at' => now(),
             ],
             [
-                'nama' => 'Selasa'
+                'nama' => 'Selasa',
+                'created_at' => now(),
+                'updated_at' => now(),
             ],
             [
-                'nama' => 'Rabu'
+                'nama' => 'Rabu',
+                'created_at' => now(),
+                'updated_at' => now(),
             ],
             [
-                'nama' => 'Kamis'
+                'nama' => 'Kamis',
+                'created_at' => now(),
+                'updated_at' => now(),
             ],
             [
-                'nama' => 'Jumat'
-            ],
-            [
-                'nama' => 'Sabtu'
-            ],
-            [
-                'nama' => 'Minggu'
+                'nama' => 'Jumat',
+                'created_at' => now(),
+                'updated_at' => now(),
             ],
         ]);
     }

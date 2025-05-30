@@ -13,6 +13,7 @@ class AgendaUpacara extends Model
 
     protected $fillable = [
         'kd_agendaupacara',
+        'id_hari',
         'tanggal_upacara',
         'id_status_upacara'
     ];
@@ -20,5 +21,10 @@ class AgendaUpacara extends Model
     public function statusAgendaUpacara()
     {
         return $this->belongsTo(StatusAgendaUpacara::class, 'id_status_upacara');
+    }
+
+    public function hari()
+    {
+        return $this->belongsTo(Hari::class, 'id_hari');
     }
 }

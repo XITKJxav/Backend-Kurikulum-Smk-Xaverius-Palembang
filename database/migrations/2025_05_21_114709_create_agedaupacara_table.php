@@ -13,6 +13,10 @@ return new class extends Migration
             $table->string('kd_agendaupacara')->primary();
             $table->date('tanggal_upacara');
             $table->string('id_status_upacara', 50);
+            $table->unsignedBigInteger("id_hari");
+            $table->foreign('id_hari')
+                ->references('id')
+                ->on('hari');
             $table->foreign('id_status_upacara')
                 ->references('id_status_upacara')
                 ->on('statusagendaupacara');

@@ -40,9 +40,9 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
-        'teacher' => [
+        'karyawan' => [
             'driver' => 'sanctum',
-            'provider' => 'teachers',
+            'provider' => 'karyawan',
         ],
         'user' => [
             'driver' => 'sanctum',
@@ -72,9 +72,9 @@ return [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', App\Models\User::class),
         ],
-        'teachers' => [
+        'karyawan' => [
             'driver' => 'eloquent',
-            'model' => App\Models\Teacher::class,
+            'model' => App\Models\Karyawan::class,
         ],
         // 'users' => [
         //     'driver' => 'database',

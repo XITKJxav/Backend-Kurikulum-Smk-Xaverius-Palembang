@@ -15,7 +15,6 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             jamBelajarSeeder::class,
-            jamIstrahatSeeder::class,
             RoleSeeder::class,
             StatusagendaupcaraSeeder::class,
             HariSeeder::class,

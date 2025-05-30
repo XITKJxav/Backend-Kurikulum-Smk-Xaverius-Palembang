@@ -12,11 +12,14 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('jadwal', function (Blueprint $table) {
-            $table->string("kd_ajaran")->nullable();
+            $table->string("id_mata_pelajaran")->nullable();
+            $table->string("id_pengajar")->nullable();
             $table->unsignedBigInteger("kd_jam_pembelajaran");
             $table->unsignedBigInteger("id_hari");
-            $table->string("kd_guru_piket");
-            $table->unsignedBigInteger("id_ruangan_kelas");
+            $table->string("kd_guru_piket")->nullable();
+            $table->unsignedBigInteger("id_ruangan_kelas")->nullable();
+            $table->primary(['kd_jam_pembelajaran', 'id_hari', 'id_ruangan_kelas']);
+
             $table->foreign('kd_jam_pembelajaran')
                 ->references('id')
                 ->on('jam_belajar');
@@ -24,6 +27,12 @@ return new class extends Migration
                 ->references('id')
                 ->on('hari');
             $table->foreign('kd_guru_piket')
+                ->references('kd_karyawan')
+                ->on('karyawan');
+            $table->foreign('id_mata_pelajaran')
+                ->references('id_mata_pelajaran')
+                ->on('mata_pelajaran');
+            $table->foreign('id_pengajar')
                 ->references('kd_karyawan')
                 ->on('karyawan');
             $table->foreign('id_ruangan_kelas')

@@ -14,6 +14,7 @@ use App\Http\Interfaces\AuthInterface;
 use App\Models\Karyawan;
 use App\Notifications\ResetPasswordNotification;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Hash;
 
 class AuthServices implements AuthInterface
 {
@@ -38,13 +39,17 @@ class AuthServices implements AuthInterface
                 'password' => 'required|string',
             ]);
 
-            $user = $modelClass::where('email', $request->email)->first();
+            if ($guard === 'karyawan') {
+                $user = $modelClass::with('role')->where('email', $request->email)->first();
+            } else {
+                $user = $modelClass::where('email', $request->email)->first();
+            }
 
             if (!$user) {
                 return (new ApiResponse(404, [], 'User not found'))->send();
             }
 
-            if (!Auth::attempt($request->only('email', 'password'))) {
+            if (!Hash::check($request->password, $user->password)) {
                 return (new ApiResponse(401, [], 'Unauthorized. Check your email or password.'))->send();
             }
 
@@ -65,10 +70,11 @@ class AuthServices implements AuthInterface
 
             $data = [];
 
-            if ($guard === 'teacher') {
+            if ($guard === 'karyawan') {
                 $data = [
                     'kd_karyawan' => $user->kd_guru,
                     'name' => $user->name,
+                    'role' => $user->role->nama,
                     'access_token' => $access_token,
                     'refresh_token' => $refresh_token,
                 ];
@@ -76,6 +82,7 @@ class AuthServices implements AuthInterface
                 $data = [
                     'kd_siswa' => $user->kd_kepengurusan_kelas,
                     'name' => $user->name,
+                    'role' => "siswa",
                     'id_ruang_kelas' => $user->id_ruang_kelas,
                     'access_token' => $access_token,
                     'refresh_token' => $refresh_token,
@@ -85,7 +92,7 @@ class AuthServices implements AuthInterface
             return (new ApiResponse(200, [$data], 'Login successfully'))->send();
         } catch (\Exception $e) {
             Log::error('Login error: ' . $e->getMessage());
-            return (new ApiResponse(500, [], 'Failed to Login'))->send();
+            return (new ApiResponse(500, [], 'Failed to Login' . $e->getMessage()))->send();
         }
     }
 
@@ -192,18 +199,60 @@ class AuthServices implements AuthInterface
                 return (new ApiResponse(401, [], 'No token provided'))->send();
             }
 
-            $refreshToken = PersonalAccessToken::findToken($token);
+            $hashedToken = hash('sha256', $token);
+            $refreshToken = PersonalAccessToken::where('token', $hashedToken)->first();
 
             if (!$refreshToken || !$refreshToken->can('issue-access-token')) {
-                return (new ApiResponse(403, [], 'Invalid refresh token'))->send();
+                return (new ApiResponse(403, [], 'Invalid or expired refresh token'))->send();
             }
 
             $user = $refreshToken->tokenable;
+
+            if (!$user) {
+                return (new ApiResponse(401, [], 'User not found'))->send();
+            }
+
             $user->tokens()->where('name', 'access_token')->delete();
+            $user->tokens()->where('name', 'refresh_token')->delete();
 
-            $newAccessToken = $user->createToken('access_token', ['access-api'])->plainTextToken;
+            $at_expiration = 60;
+            $rt_expiration = 30 * 24 * 60;
 
-            return (new ApiResponse(200, ['access_token' => $newAccessToken], 'Access token refreshed successfully'))->send();
+            $newAccessToken = $user->createToken(
+                'access_token',
+                ['access-api'],
+                Carbon::now()->addMinutes($at_expiration)
+            )->plainTextToken;
+
+            $newRefreshToken = $user->createToken(
+                'refresh_token',
+                ['issue-access-token'],
+                Carbon::now()->addMinutes($rt_expiration)
+            )->plainTextToken;
+
+            if ($guard === 'teacher') {
+                $data = [
+                    'kd_karyawan' => $user->kd_guru,
+                    'name' => $user->name,
+                    'access_token' => $newAccessToken,
+                    'refresh_token' => $newRefreshToken,
+                ];
+            } elseif ($guard === 'user') {
+                $data = [
+                    'kd_siswa' => $user->kd_kepengurusan_kelas,
+                    'name' => $user->name,
+                    'id_ruang_kelas' => $user->id_ruang_kelas,
+                    'access_token' => $newAccessToken,
+                    'refresh_token' => $newRefreshToken,
+                ];
+            } else {
+                $data = [
+                    'access_token' => $newAccessToken,
+                    'refresh_token' => $newRefreshToken,
+                ];
+            }
+
+            return (new ApiResponse(200, [$data], 'Token refreshed successfully'))->send();
         } catch (\Exception $e) {
             Log::error('Refresh token error: ' . $e->getMessage());
             return (new ApiResponse(500, [], 'Failed to refresh token'))->send();

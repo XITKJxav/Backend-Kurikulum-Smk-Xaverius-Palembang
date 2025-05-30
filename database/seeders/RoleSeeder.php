@@ -16,19 +16,19 @@ class RoleSeeder extends Seeder
     {
         Role::insert([
             [
-                'id_role' => Str::uuid() . '-ADMIN',
+                'id_role' => 'd93ks8fjq2-ADMIN',
                 'name'    => 'ADMIN',
             ],
             [
-                'id_role' => Str::uuid() . '-Guru',
+                'id_role' => 'a7djw82kd1-GURU',
                 'name'    => 'GURU',
             ],
             [
-                'id_role' => Str::uuid() . '-Kurikulum',
+                'id_role' =>  '89fjw82hsk-KURIKULUM',
                 'name'    => 'KURIKULUM',
             ],
             [
-                'id_role' => Str::uuid() .  '-KEPALASEKOLAH',
+                'id_role' =>  '92jdke7wqx-KEPALASEKOLAH',
                 'name'    => 'KEPALASEKOLAH',
             ],
         ]);

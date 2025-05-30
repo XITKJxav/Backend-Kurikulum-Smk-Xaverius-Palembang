@@ -15,7 +15,8 @@ class RuanganKelas extends Model
     protected $fillable = [
         'nama_ruangan',
         'status',
-        'kd_jurusan'
+        'kd_jurusan',
+        'kd_wali_kelas'
     ];
 
     public function jurusan()
@@ -25,6 +26,11 @@ class RuanganKelas extends Model
 
     public function pengurusKelas()
     {
-        return $this->hasMany(User::class, 'kd_kepengurusan_kelas');
+        return $this->hasMany(User::class, 'kd_siswa');
+    }
+
+    public function waliKelas()
+    {
+        return $this->belongsTo(Karyawan::class, 'kd_wali_kelas', 'kd_karyawan');
     }
 }

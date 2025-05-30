@@ -7,6 +7,7 @@ use App\Http\Common\Helper\Generate\GenerateJurusanCode;
 use App\Http\Common\Helper\Generate\GenerateKaryawanCode;
 use App\Http\Common\Helper\Generate\GenerateMataPelajaranCode;
 use App\Http\Common\Helper\Generate\GenerateMuridCode;
+use App\Http\Common\Helper\Generate\GeneratePengajarCode;
 use App\Http\Common\Helper\Generate\GenerateRuanganCode;
 
 class ReportGenerator

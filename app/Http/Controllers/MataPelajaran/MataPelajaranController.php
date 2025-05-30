@@ -5,6 +5,7 @@ namespace App\Http\Controllers\MataPelajaran;
 use App\Http\Common\Helper\ReportGenerator;
 use App\Http\Common\Utils\ApiResponse;
 use App\Http\Common\Utils\Filtering;
+use App\Http\Common\Utils\TextFormatter;
 use App\Http\Controllers\Controller;
 use App\Models\MataPelajaran;
 use Illuminate\Http\Request;
@@ -31,7 +32,6 @@ class MataPelajaranController extends Controller
         try {
             $validated = $request->validate([
                 'nama' => 'required|string|max:255',
-                'status' => 'required',
             ]);
 
             $generator = new ReportGenerator();
@@ -39,16 +39,17 @@ class MataPelajaranController extends Controller
 
             $mataPelajaran = MataPelajaran::create([
                 'id_mata_pelajaran' => $kdMataPelajaran,
-                'nama' => $validated['nama'],
-                'status' => $validated['status'],
+                'nama' => (new TextFormatter($validated["nama"]))->titleCase(),
+                'status' => true,
             ]);
 
             return (new ApiResponse(201, [$mataPelajaran], 'Mata Pelajaran created successfully'))->send();
         } catch (\Exception $e) {
             Log::error('Error storing Mata Pelajaran: ' . $e->getMessage());
-            return (new ApiResponse(500, [], 'Failed to create Mata Pelajaran'))->send();
+            return (new ApiResponse(500, [], 'Failed to create Mata Pelajaran: ' . $e->getMessage()))->send();
         }
     }
+
 
     public function show(string $id)
     {
@@ -70,6 +71,11 @@ class MataPelajaranController extends Controller
             ]);
 
             $mataPelajaran = MataPelajaran::findOrFail($id);
+
+            if (isset($validated['nama'])) {
+                $validated['nama'] = (new TextFormatter($validated['nama']))->titleCase();
+            }
+
             $mataPelajaran->update($validated);
 
             return (new ApiResponse(200, [$mataPelajaran], 'Mata Pelajaran updated successfully'))->send();

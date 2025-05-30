@@ -6,6 +6,9 @@ use App\Http\Common\Helper\ReportGenerator;
 use App\Http\Common\Utils\ApiResponse;
 use App\Http\Common\Utils\Filtering;
 use App\Http\Controllers\Controller;
+use App\Models\Hari;
+use App\Models\Jadwal;
+use App\Models\JamBelajar;
 use App\Models\RuanganKelas;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
@@ -19,7 +22,7 @@ class RuangKelasController extends Controller
     {
         try {
             $data = (new Filtering($request))
-                ->setBuilder(RuanganKelas::with('jurusan'), 'nama_jurusan', 'kd_jurusan')
+                ->setBuilder(RuanganKelas::with('jurusan', 'waliKelas'), 'nama_jurusan', 'kd_jurusan')
                 ->apply();
 
             return (new ApiResponse(200, [$data], "Class Room fetched Successfully"))->send();
@@ -37,6 +40,7 @@ class RuangKelasController extends Controller
             $validator = Validator::make($request->all(), [
                 'nomor_ruangan' => 'required|string|max:50',
                 'kd_jurusan' => 'required|string|exists:jurusans,kd_jurusan',
+                'kd_wali_kelas' => 'required'
             ]);
 
             if ($validator->fails()) {
@@ -56,6 +60,7 @@ class RuangKelasController extends Controller
             $data = RuanganKelas::create([
                 'nama_ruangan' => $generateNamaRuangan,
                 'kd_jurusan' =>  $kdJurusan,
+                'kd_wali_kelas' => $request->kd_wali_kelas,
                 'status' => true,
             ]);
 
@@ -69,6 +74,7 @@ class RuangKelasController extends Controller
     public function show(string $id)
     {
         try {
+
             $data = RuanganKelas::with('jurusan')->findOrFail($id);
             return (new ApiResponse(200, [$data],  'Ruangan kelas retrieved successfully'))->send();
         } catch (ModelNotFoundException $e) {
@@ -87,6 +93,7 @@ class RuangKelasController extends Controller
             $validator = Validator::make($request->all(), [
                 'kd_jurusan' => 'required',
                 'nomor_ruangan' => 'required',
+                'kd_wali_kelas' => 'required',
                 'status' => 'boolean',
             ]);
 
@@ -114,6 +121,7 @@ class RuangKelasController extends Controller
             $updated = $ruangKelas->update([
                 'nama_ruangan' =>  $generateNamaRuangan,
                 'kd_jurusan' => $kdJurusan,
+                'kd_wali_kelas' => $request->kd_wali_kelas,
                 'status' => $request->status,
             ]);
 
@@ -135,8 +143,5 @@ class RuangKelasController extends Controller
     }
 
 
-    public function destroy(string $id)
-    {
-        //
-    }
+    public function destroy(string $id) {}
 }

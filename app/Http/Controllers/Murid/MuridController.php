@@ -35,11 +35,29 @@ class MuridController extends Controller
     {
         try {
             $ruangKelas = User::with('ruanganKelas')->findOrFail($id);
-            return (new ApiResponse(200, [$ruangKelas], 'User class coordinator fetched successfully'))->send();
-        } catch (ModelNotFoundException $e) {
-            Log::error('Ruang kelas not found: ' . $e->getMessage());
-            return (new ApiResponse(404, [], 'User class coordinator not found'))->send();
-        } catch (\Exception $e) {
+            if ($ruangKelas)
+                return (new ApiResponse(200, [$ruangKelas], 'User class coordinator fetched successfully'))->send();
+        } catch (\Throwable $e) {
+            if ($e instanceof ModelNotFoundException) {
+                Log::error('Ruang kelas not found: ' . $e->getMessage());
+                return (new ApiResponse(404, [], 'User class coordinator not found'))->send();
+            }
+            Log::error('Error retrieving jurusan: ' . $e->getMessage());
+            return (new ApiResponse(500, [], 'Failed to retrieve user class coordinator'))->send();
+        }
+    }
+
+    public function fetchSiswa(string $id)
+    {
+        try {
+            $ruangKelas = User::with('ruanganKelas')->findOrFail($id);
+            if ($ruangKelas)
+                return (new ApiResponse(200, [$ruangKelas], 'User class coordinator fetched successfully'))->send();
+        } catch (\Throwable $e) {
+            if ($e instanceof ModelNotFoundException) {
+                Log::error('Ruang kelas not found: ' . $e->getMessage());
+                return (new ApiResponse(404, [], 'User class coordinator not found'))->send();
+            }
             Log::error('Error retrieving jurusan: ' . $e->getMessage());
             return (new ApiResponse(500, [], 'Failed to retrieve user class coordinator'))->send();
         }
@@ -74,7 +92,7 @@ class MuridController extends Controller
         } catch (\Exception $e) {
             Log::error('Register error: ' . $e->getMessage());
             if (str_contains($e->getMessage(), 'Duplicate entry')) {
-                return (new ApiResponse(409, [], 'Kode siswa sudah digunakan'))->send(); // 409 Conflict
+                return (new ApiResponse(409, [], 'Kode siswa sudah digunakan'))->send();
             }
             return (new ApiResponse(500, [], 'Failed to register user' . $e->getMessage()))->send();
         }
@@ -85,7 +103,7 @@ class MuridController extends Controller
         try {
             $validator = Validator::make($request->all(), [
                 'name' => 'sometimes|string|max:255',
-                'email' => 'sometimes|email|unique:users,email,' . $id,
+                'email' => 'sometimes|email|unique:users,email,' . $id .  ',kd_Siswa',
                 'no_telp' => 'sometimes|string|min:10|max:15',
                 'id_ruang_kelas' => 'sometimes|exists:ruangankelas,id',
                 'status' => 'sometimes|boolean',
